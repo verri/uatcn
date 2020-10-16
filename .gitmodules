@@ -1,0 +1,6 @@
+[submodule "external/CLI11"]
+	path = external/CLI11
+	url = https://github.com/CLIUtils/CLI11.git
+[submodule "external/uatlib"]
+	path = external/uatlib
+	url = https://github.com/verri/uatlib
