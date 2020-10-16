@@ -66,33 +66,6 @@ auto astar(const uat::slot& from, const uat::slot& to, uat::uint_t tstart,
 
   std::mt19937 gen(seed);
 
-  // tries shortest path first
-  {
-    const auto candidate = [&]() -> std::vector<tslot> {
-      auto path = from.shortest_path(to, gen());
-      assert(path.size() == 0 || path.size() == from.distance(to) + 1);
-
-      if (path.size() == 0)
-        return {};
-
-      std::vector<tslot> solution;
-      uint_t t = tstart;
-
-      for (const auto& slot : path)
-      {
-        if (std::holds_alternative<unavailable>(status(slot, t)))
-          return {};
-        solution.push_back({slot, t});
-        ++t;
-      }
-
-      return solution;
-    }();
-
-    if (candidate.size() != 0)
-      return candidate;
-  }
-
   const auto h = [to, bid_max_value](const slot& s, uint_t t) -> value_t {
     return s.heuristic_distance(to) * bid_max_value;
   };
@@ -100,7 +73,7 @@ auto astar(const uat::slot& from, const uat::slot& to, uat::uint_t tstart,
   const auto cost = [&](const tslot& s) {
     return std::visit(cool::compose{
       [&](unavailable) { return std::numeric_limits<value_t>::infinity(); },
-      [&](owned) { return 0; },
+      [&](owned) { return value_t{0}; },
       [&](available status) {
         return status.min_value > bid_max_value ?
           std::numeric_limits<value_t>::infinity() :
