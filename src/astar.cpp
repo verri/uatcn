@@ -9,6 +9,7 @@
 
 #include <uat/slot.hpp>
 #include <cool/compose.hpp>
+#include <boost/functional/hash.hpp>
 
 using namespace uat;
 
@@ -58,6 +59,25 @@ private:
   Cmp cmp_;
 };
 
+struct step {
+  tslot first;
+  tslot second;
+  auto operator==(const step& other) const { return first == other.first && second == other.second; }
+};
+
+namespace std
+{
+template <> struct hash<step>
+{
+  auto operator()(const step& s) const noexcept -> size_t {
+    size_t seed = 0;
+    boost::hash_combine(seed, std::hash<tslot>{}(s.first));
+    boost::hash_combine(seed, std::hash<tslot>{}(s.second));
+    return seed;
+  }
+};
+}
+
 auto astar(const uat::slot& from, const uat::slot& to, uat::uint_t tstart,
            uat::value_t bid_max_value, uat::status_t& status, int seed) -> std::vector<uat::tslot>
 {
@@ -67,13 +87,13 @@ auto astar(const uat::slot& from, const uat::slot& to, uat::uint_t tstart,
   std::mt19937 gen(seed);
 
   const auto h = [to, bid_max_value](const slot& s, uint_t t) -> value_t {
-    return s.heuristic_distance(to) * bid_max_value;
+    return 2 * s.heuristic_distance(to) * bid_max_value;
   };
 
   const auto cost = [&](const tslot& s) {
     return std::visit(cool::compose{
       [&](unavailable) { return std::numeric_limits<value_t>::infinity(); },
-      [&](owned) { return value_t{0}; },
+      [&](owned) -> value_t { return 0; },
       [&](available status) {
         return status.min_value > bid_max_value ?
           std::numeric_limits<value_t>::infinity() :
@@ -82,25 +102,26 @@ auto astar(const uat::slot& from, const uat::slot& to, uat::uint_t tstart,
     }, status(s.slot(), s.time()));
   };
 
-  std::unordered_map<tslot, tslot> came_from;
-  std::unordered_map<tslot, score_t> score;
+  std::unordered_map<step, step> came_from;
+  std::unordered_map<step, score_t> score;
 
-  score[{from, tstart}] = {0, h(from, tstart)};
+  const step first = {{from, tstart}, {from, tstart}};
+  score[first] = {0, h(from, tstart)};
 
-  const auto cmp = [&score](const tslot& a, const tslot& b) {
+  const auto cmp = [&score](const step& a, const step& b) {
     return score[a].f > score[b].f;
   };
 
-  heap<tslot, decltype(cmp)> open(cmp);
-  open.push({from, tstart});
+  heap<step, decltype(cmp)> open(cmp);
+  open.push(first);
 
-  const auto try_path = [&](const tslot& current, tslot next) {
-    const auto d = cost(next);
+  const auto try_path = [&](const step& current, step next) {
+    const auto d = cost(next.first) + cost(next.second);
     if (std::isinf(d))
       return;
 
     const auto tentative = score[current].g + d;
-    const auto hnext = h(next.slot(), next.time());
+    const auto hnext = h(next.second.slot(), next.second.time());
 
     if (tentative < score[next].g) {
       came_from[next] = current;
@@ -116,12 +137,14 @@ auto astar(const uat::slot& from, const uat::slot& to, uat::uint_t tstart,
     if (!valid)
       continue;
 
-    if (current.slot() == to) {
+    if (current.second.slot() == to) {
       std::vector<tslot> path;
-      path.push_back(current);
-
-      while (path.back().slot() != from)
-        path.push_back(came_from.at(path.back()));
+      auto s = current;
+      for (; s.second.slot() != from; s = came_from.at(s)) {
+        path.push_back(s.second);
+        path.push_back(s.first);
+      }
+      path.push_back(s.second);
 
       return path;
     }
@@ -129,10 +152,10 @@ auto astar(const uat::slot& from, const uat::slot& to, uat::uint_t tstart,
     // XXX: should we keep forbiding staying still?
     // try_path(current, {current.slot(), current.time() + 1});
 
-    auto nei = current.slot().neighbors();
+    auto nei = current.second.slot().neighbors();
     std::shuffle(nei.begin(), nei.end(), gen);
     for (auto nslot : nei)
-      try_path(current, {std::move(nslot), current.time() + 1});
+      try_path(current, {{current.second.slot(), current.second.time() + 1}, {std::move(nslot), current.second.time() + 1}});
   }
 
   return {};

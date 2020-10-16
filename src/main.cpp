@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     uint_t max_time = 100;
     uint_t arrival_rate = 1;
 
-    std::array<int, 4> dimensions = {100, 100, 10, 300};
+    std::array<int, 4> dimensions = {100, 100, 10, 300}; // up to 30M nodes in the network!
 
     int seed = -1;
 
@@ -61,6 +61,6 @@ int main(int argc, char *argv[])
       HexGrid{{ opts.dimensions[0], opts.dimensions[1], opts.dimensions[2] }},
       opts.seed < 0 ? std::random_device{}() : opts.seed,
       [](trade_info_t info){
-        std::cout << info.value << '\n';
+        fmt::print("{},{}\n", info.s, info.t);
       });
 }
