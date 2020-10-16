@@ -87,6 +87,9 @@ auto Naive::act(uint_t t, uat::bid_t bid, uat::status_t status, int seed) -> boo
     }
   }();
 
+  if (path.size() == 0)
+    return true;
+
   for (const auto& [slot, t] : path) // see: https://stackoverflow.com/questions/46114214/lambda-implicit-capture-fails-with-variable-declared-from-structured-binding
   {
     std::visit(cool::compose{
