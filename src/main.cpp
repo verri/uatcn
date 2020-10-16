@@ -43,9 +43,6 @@ int main(int argc, char *argv[])
   assert(opts.dimensions[3] > 1);
 
   auto factory = [&](uint_t t, const airspace& space, int seed) -> std::vector<agent> {
-    if (t >= opts.max_time)
-      return {};
-
     std::mt19937 rng(seed);
 
     std::vector<agent> result;
@@ -56,12 +53,16 @@ int main(int argc, char *argv[])
     return result;
   };
 
-  simulate(
-      factory,
+  simulation_opts_t sopts;
+
+  sopts.stop_criteria = time_threshold_t{opts.max_time};
+  sopts.time_window = opts.dimensions[3];
+  sopts.trade_callback = [](trade_info_t info){
+    fmt::print("{},{},{}\n", info.transaction_time, info.s, info.t);
+  };
+
+  simulate(factory,
       HexGrid{{ opts.dimensions[0], opts.dimensions[1], opts.dimensions[2] }},
-      opts.dimensions[3],
       opts.seed < 0 ? std::random_device{}() : opts.seed,
-      [](trade_info_t info){
-        fmt::print("{},{}\n", info.s, info.t);
-      });
+      sopts);
 }
