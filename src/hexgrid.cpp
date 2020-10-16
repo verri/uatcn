@@ -34,11 +34,11 @@ auto HexGrid::random_mission(int seed) const -> uat::mission_t
   };
 }
 
-auto HexGrid::dimensions() const -> std::array<uint_t, 3u> {
+auto HexGrid::dimensions() const -> std::array<uat::uint_t, 3u> {
   return {
-    static_cast<uint_t>(dim_[0]),
-    static_cast<uint_t>(dim_[1]),
-    static_cast<uint_t>(dim_[2])
+    static_cast<uat::uint_t>(dim_[0]),
+    static_cast<uat::uint_t>(dim_[1]),
+    static_cast<uat::uint_t>(dim_[2])
   };
 }
 
@@ -93,7 +93,7 @@ auto HexPermit::cube_coord() const -> std::array<int, 3u>
   return {x, y, z};
 }
 
-auto HexPermit::distance(const HexPermit& other) const -> uint_t
+auto HexPermit::distance(const HexPermit& other) const -> uat::uint_t
 {
   constexpr auto abs = [](auto x, auto y) constexpr { return x > y ? x - y : y - x; };
 

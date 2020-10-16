@@ -5,8 +5,6 @@
 #include <uat/airspace.hpp>
 #include <uat/slot.hpp>
 
-using uint_t = uat::uint_t;
-
 class HexGrid
 {
 public:
@@ -14,7 +12,7 @@ public:
 
   auto random_mission(int) const -> uat::mission_t;
 
-  auto dimensions() const -> std::array<uint_t, 3u>;
+  auto dimensions() const -> std::array<uat::uint_t, 3u>;
 
 private:
   std::array<int, 3> dim_;
@@ -33,7 +31,7 @@ public:
 
   auto operator==(const HexPermit&) const -> bool;
 
-  auto distance(const HexPermit&) const -> uint_t;
+  auto distance(const HexPermit&) const -> uat::uint_t;
 
   auto print(std::function<void(std::string_view, fmt::format_args)>) const -> void;
 
