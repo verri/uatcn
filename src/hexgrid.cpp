@@ -38,7 +38,7 @@ auto HexGrid::iterate(uat::region_fn callback) const -> void
   for (const auto row : cool::indices(dim_[0]))
     for (const auto col : cool::indices(dim_[1]))
       for (const auto alt : cool::indices(dim_[2]))
-        if(!callback(HexRegion{row, col, alt, dim_}))
+        if (!callback(HexRegion{row, col, alt, dim_}))
           return;
 }
 

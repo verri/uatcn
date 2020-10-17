@@ -86,8 +86,7 @@ auto Naive::act(uint_t t, uat::bid_fn bid, uat::permit_public_status_fn status, 
   if (path.size() == 0)
     return true;
 
-  for (const auto& [slot, t] : path)
-  {
+  for (const auto& [slot, t] : path) {
     using namespace permit_public_status;
     std::visit(cool::compose{
                  [](unavailable) { assert(false); },

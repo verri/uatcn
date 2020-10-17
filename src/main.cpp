@@ -59,13 +59,13 @@ int main(int argc, char* argv[])
   simulation_opts_t sopts = {
     .time_window = opts.dimensions[3],
     .stop_criteria = stop_criteria::time_threshold_t{opts.max_time},
-    .trade_callback = [start_time = opts.start_time](trade_info_t info) {
-      if (info.transaction_time < start_time)
-        return;
-      fmt::print("{},{},{}\n", info.transaction_time, info.location, info.time);
-    },
+    .trade_callback =
+      [start_time = opts.start_time](trade_info_t info) {
+        if (info.transaction_time < start_time)
+          return;
+        fmt::print("{},{},{}\n", info.transaction_time, info.location, info.time);
+      },
   };
-
 
   simulate(factory, HexGrid{{opts.dimensions[0], opts.dimensions[1], opts.dimensions[2]}},
            opts.seed < 0 ? std::random_device{}() : opts.seed, sopts);

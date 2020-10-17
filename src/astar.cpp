@@ -76,8 +76,8 @@ template <> struct hash<step>
 };
 } // namespace std
 
-auto astar(const region& from, const region& to, uint_t tstart, value_t bid_max_value, permit_public_status_fn& status,
-           int seed) -> std::vector<uat::permit>
+auto astar(const region& from, const region& to, uint_t tstart, value_t bid_max_value, permit_public_status_fn& status, int seed)
+  -> std::vector<uat::permit>
 {
   using namespace uat::permit_public_status;
   if (std::holds_alternative<unavailable>(status(from, tstart)))
@@ -85,7 +85,9 @@ auto astar(const region& from, const region& to, uint_t tstart, value_t bid_max_
 
   std::mt19937 gen(seed);
 
-  const auto h = [to, bid_max_value](const region& s, uint_t t) -> value_t { return 2 * s.heuristic_distance(to) * bid_max_value; };
+  const auto h = [to, bid_max_value](const region& s, uint_t t) -> value_t {
+    return 2 * s.heuristic_distance(to) * bid_max_value;
+  };
 
   const auto cost = [&](const permit& s) {
     return std::visit(
