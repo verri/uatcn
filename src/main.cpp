@@ -15,7 +15,9 @@ int main(int argc, char* argv[])
 
   struct
   {
+    uint_t start_time = 0u;
     uint_t max_time = 100;
+
     uint_t arrival_rate = 1;
 
     std::array<int, 4> dimensions = {35, 35, 5, 150}; // up to ~1M nodes in the network!
@@ -25,6 +27,7 @@ int main(int argc, char* argv[])
     std::string pattern; // TODO: we are starting with the "free" network, not the traded permits
   } opts;
 
+  app.add_option("-p,--start-print-time", opts.start_time, "Start time to print results");
   app.add_option("-t,--max-time", opts.max_time, "Simulation maximum time");
   app.add_option("-l,--arrival-rate", opts.arrival_rate, "Number of agents generated at each epoch");
 
@@ -56,7 +59,11 @@ int main(int argc, char* argv[])
   simulation_opts_t sopts = {
     .time_window = opts.dimensions[3],
     .stop_criteria = stop_criteria::time_threshold_t{opts.max_time},
-    .trade_callback = [](trade_info_t info) { fmt::print("{},{},{}\n", info.transaction_time, info.location, info.time); },
+    .trade_callback = [start_time = opts.start_time](trade_info_t info) {
+      if (info.transaction_time < start_time)
+        return;
+      fmt::print("{},{},{}\n", info.transaction_time, info.location, info.time);
+    },
   };
 
 
