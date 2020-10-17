@@ -1,4 +1,6 @@
 #include "hexgrid.hpp"
+#include "cool/indices.hpp"
+#include "uat/airspace.hpp"
 
 #include <algorithm>
 #include <iterator>
@@ -28,10 +30,19 @@ auto HexGrid::random_mission(int seed) const -> uat::mission_t
     to[1] = cols(g);
   } while (from == to);
 
-  return {HexPermit{from[0], from[1], 0, dim_}, HexPermit{to[0], to[1], 0, dim_}};
+  return {HexRegion{from[0], from[1], 0, dim_}, HexRegion{to[0], to[1], 0, dim_}};
 }
 
-auto HexPermit::adjacent_regions() const -> std::vector<uat::region>
+auto HexGrid::iterate(uat::region_fn callback) const -> void
+{
+  for (const auto row : cool::indices(dim_[0]))
+    for (const auto col : cool::indices(dim_[1]))
+      for (const auto alt : cool::indices(dim_[2]))
+        if(!callback(HexRegion{row, col, alt, dim_}))
+          return;
+}
+
+auto HexRegion::adjacent_regions() const -> std::vector<uat::region>
 {
   // see: https://www.redblobgames.com/grids/hexagons/#neighbors-offset
   constexpr int nei_map[2u][6u][2u] = {
@@ -47,26 +58,26 @@ auto HexPermit::adjacent_regions() const -> std::vector<uat::region>
       continue;
     if (col_ + j < 0 || col_ + j >= limits_[1])
       continue;
-    nei.push_back(HexPermit{row_ + i, col_ + j, altitute_, limits_});
+    nei.push_back(HexRegion{row_ + i, col_ + j, altitute_, limits_});
   }
 
   if (altitute_ > 0)
-    nei.push_back(HexPermit{row_, col_, altitute_ - 1, limits_});
+    nei.push_back(HexRegion{row_, col_, altitute_ - 1, limits_});
 
   if (altitute_ < limits_[2] - 1)
-    nei.push_back(HexPermit{row_, col_, altitute_ + 1, limits_});
+    nei.push_back(HexRegion{row_, col_, altitute_ + 1, limits_});
 
   return nei;
 }
 
-auto HexPermit::hash() const -> std::size_t { return row_ * limits_[1] * limits_[2] + col_ * limits_[2] + altitute_; }
+auto HexRegion::hash() const -> std::size_t { return row_ * limits_[1] * limits_[2] + col_ * limits_[2] + altitute_; }
 
-auto HexPermit::operator==(const HexPermit& other) const -> bool
+auto HexRegion::operator==(const HexRegion& other) const -> bool
 {
   return row_ == other.row_ && col_ == other.col_ && altitute_ == other.altitute_;
 }
 
-auto HexPermit::cube_coord() const -> std::array<int, 3u>
+auto HexRegion::cube_coord() const -> std::array<int, 3u>
 {
   const auto x = col_ - (row_ - (row_ & 1)) / 2;
   const auto z = row_;
@@ -74,7 +85,7 @@ auto HexPermit::cube_coord() const -> std::array<int, 3u>
   return {x, y, z};
 }
 
-auto HexPermit::distance(const HexPermit& other) const -> uat::uint_t
+auto HexRegion::distance(const HexRegion& other) const -> uat::uint_t
 {
   constexpr auto abs = [](auto x, auto y) constexpr { return x > y ? x - y : y - x; };
 
@@ -84,7 +95,7 @@ auto HexPermit::distance(const HexPermit& other) const -> uat::uint_t
   return (abs(pos[0], opos[0]) + abs(pos[1], opos[1]) + abs(pos[2], opos[2])) / 2 + abs(altitute_, other.altitute_);
 }
 
-auto HexPermit::print(std::function<void(std::string_view, fmt::format_args)> f) const -> void
+auto HexRegion::print(std::function<void(std::string_view, fmt::format_args)> f) const -> void
 {
   f("{},{},{}", fmt::make_format_args(row_, col_, altitute_));
 }

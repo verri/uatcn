@@ -12,7 +12,7 @@ public:
 
   auto random_mission(int) const -> uat::mission_t;
 
-  auto iterate(uat::region_fn) const -> void {} // TODO
+  auto iterate(uat::region_fn) const -> void;
 
 private:
   std::array<int, 3> dim_;
@@ -20,7 +20,7 @@ private:
 
 // odd-r representation
 // consult: https://www.redblobgames.com/grids/hexagons/
-class HexPermit
+class HexRegion
 {
   friend class HexGrid;
 
@@ -29,14 +29,14 @@ public:
 
   auto hash() const -> std::size_t;
 
-  auto operator==(const HexPermit&) const -> bool;
+  auto operator==(const HexRegion&) const -> bool;
 
-  auto distance(const HexPermit&) const -> uat::uint_t;
+  auto distance(const HexRegion&) const -> uat::uint_t;
 
   auto print(std::function<void(std::string_view, fmt::format_args)>) const -> void;
 
 private:
-  HexPermit(int row, int col, int alt, std::array<int, 3> limits) : row_{row}, col_{col}, altitute_{alt}, limits_{limits} {}
+  HexRegion(int row, int col, int alt, std::array<int, 3> limits) : row_{row}, col_{col}, altitute_{alt}, limits_{limits} {}
 
   auto cube_coord() const -> std::array<int, 3u>;
 
