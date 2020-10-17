@@ -4,6 +4,7 @@ add_subdirectory(external/CLI11)
 add_subdirectory(external/uatlib)
 
 add_executable(simulation src/main.cpp src/astar.cpp src/hexgrid.cpp src/naive.cpp)
+target_compile_features(simulation PRIVATE cxx_std_17)
 
 find_package(Boost 1.56 REQUIRED COMPONENTS iostreams)
 target_link_libraries(simulation PRIVATE CLI11::CLI11 uat Boost::iostreams)

@@ -17,7 +17,7 @@ auto HexGrid::random_mission(int seed) const -> uat::mission_t
 {
   std::mt19937 g(seed);
 
-  std::uniform_int_distribution<int > rows{0, dim_[0] - 1};
+  std::uniform_int_distribution<int> rows{0, dim_[0] - 1};
   std::uniform_int_distribution<int> cols{0, dim_[1] - 1};
 
   const std::array<int, 2> from = {rows(g), cols(g)};
@@ -28,33 +28,18 @@ auto HexGrid::random_mission(int seed) const -> uat::mission_t
     to[1] = cols(g);
   } while (from == to);
 
-  return {
-    HexPermit{from[0], from[1], 0, dim_},
-    HexPermit{to[0], to[1], 0, dim_}
-  };
+  return {HexPermit{from[0], from[1], 0, dim_}, HexPermit{to[0], to[1], 0, dim_}};
 }
 
-auto HexGrid::dimensions() const -> std::array<uat::uint_t, 3u> {
-  return {
-    static_cast<uat::uint_t>(dim_[0]),
-    static_cast<uat::uint_t>(dim_[1]),
-    static_cast<uat::uint_t>(dim_[2])
-  };
-}
-
-auto HexPermit::neighbors() const -> std::vector<uat::slot>
+auto HexPermit::adjacent_regions() const -> std::vector<uat::region>
 {
   // see: https://www.redblobgames.com/grids/hexagons/#neighbors-offset
   constexpr int nei_map[2u][6u][2u] = {
-    {
-      {+1, 0}, {0, -1}, {-1, -1}, {-1, 0}, {-1, +1}, {0, +1}
-    },
-    {
-      {+1, 0}, {+1, -1}, { 0, -1}, {-1,  0}, { 0, +1}, {+1, +1}
-    },
+    {{+1, 0}, {0, -1}, {-1, -1}, {-1, 0}, {-1, +1}, {0, +1}},
+    {{+1, 0}, {+1, -1}, {0, -1}, {-1, 0}, {0, +1}, {+1, +1}},
   };
 
-  std::vector<uat::slot> nei;
+  std::vector<uat::region> nei;
   nei.reserve(8);
 
   for (const auto [i, j] : nei_map[row_ & 1]) {
@@ -74,11 +59,7 @@ auto HexPermit::neighbors() const -> std::vector<uat::slot>
   return nei;
 }
 
-auto HexPermit::hash() const -> std::size_t
-{
-  return row_ * limits_[1] * limits_[2] + col_ * limits_[2] + altitute_;
-}
-
+auto HexPermit::hash() const -> std::size_t { return row_ * limits_[1] * limits_[2] + col_ * limits_[2] + altitute_; }
 
 auto HexPermit::operator==(const HexPermit& other) const -> bool
 {
@@ -89,7 +70,7 @@ auto HexPermit::cube_coord() const -> std::array<int, 3u>
 {
   const auto x = col_ - (row_ - (row_ & 1)) / 2;
   const auto z = row_;
-  const auto y = - x - z;
+  const auto y = -x - z;
   return {x, y, z};
 }
 
@@ -100,8 +81,7 @@ auto HexPermit::distance(const HexPermit& other) const -> uat::uint_t
   const auto pos = cube_coord();
   const auto opos = other.cube_coord();
 
-  return (abs(pos[0], opos[0]) + abs(pos[1], opos[1]) + abs(pos[2], opos[2])) / 2 +
-    abs(altitute_, other.altitute_);
+  return (abs(pos[0], opos[0]) + abs(pos[1], opos[1]) + abs(pos[2], opos[2])) / 2 + abs(altitute_, other.altitute_);
 }
 
 auto HexPermit::print(std::function<void(std::string_view, fmt::format_args)> f) const -> void

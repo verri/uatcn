@@ -1,13 +1,13 @@
 #include "hexgrid.hpp"
 #include "naive.hpp"
 
-#include <uat/simulation.hpp>
 #include <cool/indices.hpp>
 #include <random>
+#include <uat/simulation.hpp>
 
 #include <CLI/CLI.hpp>
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   using namespace uat;
 
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 
   try {
     app.parse(argc, argv);
-  } catch (const CLI::ParseError &e) {
+  } catch (const CLI::ParseError& e) {
     return app.exit(e);
   }
 
@@ -53,16 +53,13 @@ int main(int argc, char *argv[])
     return result;
   };
 
-  simulation_opts_t sopts;
-
-  sopts.stop_criteria = time_threshold_t{opts.max_time};
-  sopts.time_window = opts.dimensions[3];
-  sopts.trade_callback = [](trade_info_t info){
-    fmt::print("{},{},{}\n", info.transaction_time, info.s, info.t);
+  simulation_opts_t sopts = {
+    .time_window = opts.dimensions[3],
+    .stop_criteria = stop_criteria::time_threshold_t{opts.max_time},
+    .trade_callback = [](trade_info_t info) { fmt::print("{},{},{}\n", info.transaction_time, info.location, info.time); },
   };
 
-  simulate(factory,
-      HexGrid{{ opts.dimensions[0], opts.dimensions[1], opts.dimensions[2] }},
-      opts.seed < 0 ? std::random_device{}() : opts.seed,
-      sopts);
+
+  simulate(factory, HexGrid{{opts.dimensions[0], opts.dimensions[1], opts.dimensions[2]}},
+           opts.seed < 0 ? std::random_device{}() : opts.seed, sopts);
 }

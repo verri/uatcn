@@ -1,9 +1,9 @@
 #pragma once
 
 #include <type_traits>
-#include <uat/type.hpp>
 #include <uat/airspace.hpp>
-#include <uat/slot.hpp>
+#include <uat/permit.hpp>
+#include <uat/type.hpp>
 
 class HexGrid
 {
@@ -12,7 +12,7 @@ public:
 
   auto random_mission(int) const -> uat::mission_t;
 
-  auto dimensions() const -> std::array<uat::uint_t, 3u>;
+  auto iterate(uat::region_fn) const -> void {} // TODO
 
 private:
   std::array<int, 3> dim_;
@@ -25,7 +25,7 @@ class HexPermit
   friend class HexGrid;
 
 public:
-  auto neighbors() const -> std::vector<uat::slot>;
+  auto adjacent_regions() const -> std::vector<uat::region>;
 
   auto hash() const -> std::size_t;
 
@@ -36,8 +36,7 @@ public:
   auto print(std::function<void(std::string_view, fmt::format_args)>) const -> void;
 
 private:
-  HexPermit(int row, int col, int alt, std::array<int, 3> limits) :
-    row_{row}, col_{col}, altitute_{alt}, limits_{limits} {}
+  HexPermit(int row, int col, int alt, std::array<int, 3> limits) : row_{row}, col_{col}, altitute_{alt}, limits_{limits} {}
 
   auto cube_coord() const -> std::array<int, 3u>;
 
