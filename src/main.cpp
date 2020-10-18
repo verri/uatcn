@@ -6,6 +6,7 @@
 #include <uat/simulation.hpp>
 
 #include <CLI/CLI.hpp>
+#include <variant>
 
 int main(int argc, char* argv[])
 {
@@ -15,12 +16,12 @@ int main(int argc, char* argv[])
 
   struct
   {
-    uint_t start_time = 0u;
-    uint_t max_time = 100;
+    uint_t start_time = 100u;
+    uint_t max_time = 100u;
 
-    uint_t arrival_rate = 1;
+    uint_t arrival_rate = 1u;
 
-    std::array<int, 4> dimensions = {35, 35, 5, 150}; // up to ~1M nodes in the network!
+    std::array<int, 4u> dimensions = {35, 35, 5, 150}; // up to ~1M nodes in the network!
 
     int seed = -1;
 
@@ -56,16 +57,30 @@ int main(int argc, char* argv[])
     return result;
   };
 
-  simulation_opts_t sopts = {
-    .time_window = opts.dimensions[3],
-    .stop_criteria = stop_criteria::time_threshold_t{opts.max_time},
-    .trade_callback =
-      [start_time = opts.start_time](trade_info_t info) {
-        if (info.transaction_time < start_time)
-          return;
-        fmt::print("{},{},{}\n", info.transaction_time, info.location, info.time);
-      },
-  };
+  simulation_opts_t sopts = {.time_window = opts.dimensions[3],
+                             .stop_criteria = stop_criteria::time_threshold_t{opts.max_time},
+                             .status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3]](
+                                                  uint_t t, const airspace& space, permit_private_status_fn status) {
+                               if (t < start_time)
+                                 return;
+                               const auto end = t + time_window;
+                               for (; t < end; ++t) {
+                                 fmt::print("t = {}\n", t);
+                                 space.iterate([&](region location) -> bool {
+                                   using namespace permit_private_status;
+                                   if (!std::holds_alternative<on_sale>(status(location, t)))
+                                     return true;
+
+                                   for (const auto& adj : location.adjacent_regions()) {
+                                     if (!std::holds_alternative<on_sale>(status(adj, t + 1)))
+                                       continue;
+                                     fmt::print("{} -> {}\n", location, adj);
+                                   }
+
+                                   return true;
+                                 });
+                               }
+                             }};
 
   simulate(factory, HexGrid{{opts.dimensions[0], opts.dimensions[1], opts.dimensions[2]}},
            opts.seed < 0 ? std::random_device{}() : opts.seed, sopts);
