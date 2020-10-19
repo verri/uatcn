@@ -58,23 +58,23 @@ auto HexRegion::adjacent_regions() const -> std::vector<uat::region>
       continue;
     if (col_ + j < 0 || col_ + j >= limits_[1])
       continue;
-    nei.push_back(HexRegion{row_ + i, col_ + j, altitute_, limits_});
+    nei.push_back(HexRegion{row_ + i, col_ + j, altitude_, limits_});
   }
 
-  if (altitute_ > 0)
-    nei.push_back(HexRegion{row_, col_, altitute_ - 1, limits_});
+  if (altitude_ > 0)
+    nei.push_back(HexRegion{row_, col_, altitude_ - 1, limits_});
 
-  if (altitute_ < limits_[2] - 1)
-    nei.push_back(HexRegion{row_, col_, altitute_ + 1, limits_});
+  if (altitude_ < limits_[2] - 1)
+    nei.push_back(HexRegion{row_, col_, altitude_ + 1, limits_});
 
   return nei;
 }
 
-auto HexRegion::hash() const -> std::size_t { return row_ * limits_[1] * limits_[2] + col_ * limits_[2] + altitute_; }
+auto HexRegion::hash() const -> std::size_t { return row_ * limits_[1] * limits_[2] + col_ * limits_[2] + altitude_; }
 
 auto HexRegion::operator==(const HexRegion& other) const -> bool
 {
-  return row_ == other.row_ && col_ == other.col_ && altitute_ == other.altitute_;
+  return row_ == other.row_ && col_ == other.col_ && altitude_ == other.altitude_;
 }
 
 auto HexRegion::cube_coord() const -> std::array<int, 3u>
@@ -92,10 +92,10 @@ auto HexRegion::distance(const HexRegion& other) const -> uat::uint_t
   const auto pos = cube_coord();
   const auto opos = other.cube_coord();
 
-  return (abs(pos[0], opos[0]) + abs(pos[1], opos[1]) + abs(pos[2], opos[2])) / 2 + abs(altitute_, other.altitute_);
+  return (abs(pos[0], opos[0]) + abs(pos[1], opos[1]) + abs(pos[2], opos[2])) / 2 + abs(altitude_, other.altitude_);
 }
 
 auto HexRegion::print(std::function<void(std::string_view, fmt::format_args)> f) const -> void
 {
-  f("{},{},{}", fmt::make_format_args(row_, col_, altitute_));
+  f("{},{},{}", fmt::make_format_args(row_, col_, altitude_));
 }

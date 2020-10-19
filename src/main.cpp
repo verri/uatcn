@@ -1,3 +1,4 @@
+#include "fmt/core.h"
 #include "hexgrid.hpp"
 #include "naive.hpp"
 
@@ -21,7 +22,7 @@ int main(int argc, char* argv[])
 
     uint_t arrival_rate = 1u;
 
-    std::array<int, 4u> dimensions = {35, 35, 5, 150}; // up to ~1M nodes in the network!
+    std::array<int, 4u> dimensions = {15, 15, 3, 50}; // up to ~30k nodes in the network!
 
     int seed = -1;
 
@@ -57,30 +58,45 @@ int main(int argc, char* argv[])
     return result;
   };
 
+  // TODO: consider ground for other times
+  const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3]](uint_t t, const airspace& space,
+                                                                                                permit_private_status_fn status) {
+    fmt::print(stderr, "t = {}\n", t);
+    if (t < start_time)
+      return;
+    using namespace permit_private_status;
+    const auto end = t + time_window;
+    ++t;
+
+    std::unordered_set<region> current, next;
+    space.iterate([&](region location) -> bool {
+      if (location.downcast<HexRegion>().altitude() != 0u)
+        return true;
+      if (std::holds_alternative<on_sale>(status(location, t)))
+        current.insert(location);
+      return true;
+    });
+
+    fmt::print("t,xa,ya,za,xb,yb,zb\n");
+    for (; t < end && !current.empty(); ++t) {
+      for (const auto& location : current) {
+        for (const auto& adj : location.adjacent_regions()) {
+          if (!std::holds_alternative<on_sale>(status(adj, t + 1)))
+            continue;
+          if (adj.downcast<HexRegion>().altitude() > end - t - 1)
+            continue;
+          fmt::print("{},{},{}\n", t, location, adj);
+          next.insert(adj);
+        }
+      }
+      current = std::move(next);
+      next.clear();
+    }
+  };
+
   simulation_opts_t sopts = {.time_window = opts.dimensions[3],
                              .stop_criteria = stop_criteria::time_threshold_t{opts.max_time},
-                             .status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3]](
-                                                  uint_t t, const airspace& space, permit_private_status_fn status) {
-                               if (t < start_time)
-                                 return;
-                               const auto end = t + time_window;
-                               for (; t < end; ++t) {
-                                 fmt::print("t = {}\n", t);
-                                 space.iterate([&](region location) -> bool {
-                                   using namespace permit_private_status;
-                                   if (!std::holds_alternative<on_sale>(status(location, t)))
-                                     return true;
-
-                                   for (const auto& adj : location.adjacent_regions()) {
-                                     if (!std::holds_alternative<on_sale>(status(adj, t + 1)))
-                                       continue;
-                                     fmt::print("{} -> {}\n", location, adj);
-                                   }
-
-                                   return true;
-                                 });
-                               }
-                             }};
+                             .status_callback = status_callback};
 
   simulate(factory, HexGrid{{opts.dimensions[0], opts.dimensions[1], opts.dimensions[2]}},
            opts.seed < 0 ? std::random_device{}() : opts.seed, sopts);

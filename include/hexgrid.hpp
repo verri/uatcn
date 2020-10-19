@@ -35,12 +35,14 @@ public:
 
   auto print(std::function<void(std::string_view, fmt::format_args)>) const -> void;
 
+  auto altitude() const { return altitude_; }
+
 private:
-  HexRegion(int row, int col, int alt, std::array<int, 3> limits) : row_{row}, col_{col}, altitute_{alt}, limits_{limits} {}
+  HexRegion(int row, int col, int alt, std::array<int, 3> limits) : row_{row}, col_{col}, altitude_{alt}, limits_{limits} {}
 
   auto cube_coord() const -> std::array<int, 3u>;
 
   int row_, col_;
-  int altitute_;
+  int altitude_;
   std::array<int, 3> limits_;
 };
