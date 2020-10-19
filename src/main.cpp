@@ -59,39 +59,40 @@ int main(int argc, char* argv[])
   };
 
   // TODO: consider ground for other times
-  const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3]](uint_t t, const airspace& space,
-                                                                                                permit_private_status_fn status) {
+  const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3]](
+                                 uint_t t, uint_t nactive, const airspace&, permit_private_status_fn) {
     fmt::print(stderr, "t = {}\n", t);
-    if (t < start_time)
-      return;
-    using namespace permit_private_status;
-    const auto end = t + time_window;
-    ++t;
+    fmt::print(stdout, "{}\n", nactive);
+    // if (t < start_time)
+    //   return;
+    // using namespace permit_private_status;
+    // const auto end = t + time_window;
+    // ++t;
 
-    std::unordered_set<region> current, next;
-    space.iterate([&](region location) -> bool {
-      if (location.downcast<HexRegion>().altitude() != 0u)
-        return true;
-      if (std::holds_alternative<on_sale>(status(location, t)))
-        current.insert(location);
-      return true;
-    });
+    // std::unordered_set<region> current, next;
+    // space.iterate([&](region location) -> bool {
+    //   if (location.downcast<HexRegion>().altitude() != 0u)
+    //     return true;
+    //   if (std::holds_alternative<on_sale>(status(location, t)))
+    //     current.insert(location);
+    //   return true;
+    // });
 
-    fmt::print("t,xa,ya,za,xb,yb,zb\n");
-    for (; t < end && !current.empty(); ++t) {
-      for (const auto& location : current) {
-        for (const auto& adj : location.adjacent_regions()) {
-          if (!std::holds_alternative<on_sale>(status(adj, t + 1)))
-            continue;
-          if (adj.downcast<HexRegion>().altitude() > end - t - 1)
-            continue;
-          fmt::print("{},{},{}\n", t, location, adj);
-          next.insert(adj);
-        }
-      }
-      current = std::move(next);
-      next.clear();
-    }
+    // fmt::print("t,xa,ya,za,xb,yb,zb\n");
+    // for (; t < end && !current.empty(); ++t) {
+    //   for (const auto& location : current) {
+    //     for (const auto& adj : location.adjacent_regions()) {
+    //       if (!std::holds_alternative<on_sale>(status(adj, t + 1)))
+    //         continue;
+    //       if (adj.downcast<HexRegion>().altitude() > end - t - 1)
+    //         continue;
+    //       fmt::print("{},{},{}\n", t, location, adj);
+    //       next.insert(adj);
+    //     }
+    //   }
+    //   current = std::move(next);
+    //   next.clear();
+    // }
   };
 
   simulation_opts_t sopts = {.time_window = opts.dimensions[3],
