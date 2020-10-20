@@ -60,9 +60,9 @@ int main(int argc, char* argv[])
 
   // TODO: consider ground for other times
   const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3]](
-                                 uint_t t, uint_t nactive, const airspace&, permit_private_status_fn) {
+                                 uint_t t, const agents_private_status_fn& status, const airspace&, permit_private_status_fn) {
     fmt::print(stderr, "t = {}\n", t);
-    fmt::print(stdout, "{}\n", nactive);
+    fmt::print(stdout, "{}\n", status.active_count());
     // if (t < start_time)
     //   return;
     // using namespace permit_private_status;
