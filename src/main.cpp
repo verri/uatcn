@@ -10,15 +10,20 @@
 #include <fmt/format.h>
 #include <random>
 #include <thread>
-#include <tuple>
 #include <uat/simulation.hpp>
 #include <variant>
 #include <zlib.h>
 
-static void compress_to(fmt::memory_buffer buf, std::string filename)
+struct compress_args_t
 {
-  const auto file = cool::ccreate(gzopen(filename.c_str(), "wb"), gzclose);
-  gzwrite(file.get(), buf.data(), buf.size());
+  fmt::memory_buffer buffer;
+  std::string filename;
+};
+
+static void compress_to(const compress_args_t& args)
+{
+  const auto file = cool::ccreate(gzopen(args.filename.c_str(), "wb"), gzclose);
+  gzwrite(file.get(), args.buffer.data(), args.buffer.size());
 }
 
 int main(int argc, char* argv[])
@@ -70,12 +75,12 @@ int main(int argc, char* argv[])
     return result;
   };
 
-  cool::channel<std::tuple<fmt::memory_buffer, std::string>> ch;
+  cool::channel<compress_args_t> ch;
 
   std::thread print_thr([&] {
-    std::tuple<fmt::memory_buffer, std::string> args;
+    compress_args_t args;
     while (ch >> args)
-      std::apply(compress_to, std::move(args));
+      compress_to(args);
   });
 
   // TODO: consider ground for other times
@@ -100,8 +105,9 @@ int main(int argc, char* argv[])
       return true;
     });
 
-    fmt::memory_buffer out;
-    fmt::format_to(out, "t,xa,ya,za,xb,yb,zb\n");
+    compress_args_t args{fmt::memory_buffer{}, fmt::format(pattern, fmt::arg("time", curtime))};
+
+    fmt::format_to(args.buffer, "t,xa,ya,za,xb,yb,zb\n");
     for (; t < end && !current.empty(); ++t) {
       for (const auto& location : current) {
         for (const auto& adj : location.adjacent_regions()) {
@@ -109,14 +115,14 @@ int main(int argc, char* argv[])
             continue;
           if (adj.downcast<HexRegion>().altitude() > end - t - 1)
             continue;
-          fmt::format_to(out, "{},{},{}\n", t, location, adj);
+          fmt::format_to(args.buffer, "{},{},{}\n", t, location, adj);
           next.insert(adj);
         }
       }
       std::swap(current, next);
       next.clear();
     }
-    ch << std::forward_as_tuple(std::move(out), fmt::format(pattern, fmt::arg("time", curtime)));
+    ch << std::move(args);
   };
 
   simulation_opts_t sopts = {.time_window = opts.dimensions[3],
