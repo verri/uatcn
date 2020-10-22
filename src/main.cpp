@@ -14,9 +14,8 @@
 
 void compress_to(fmt::memory_buffer buf, std::string filename)
 {
-  gzFile file = gzopen(filename.c_str(), "wb");
-  gzwrite(file, buf.data(), buf.size());
-  gzclose(file);
+  const auto file = cool::ccreate(gzopen(filename.c_str(), "wb"), gzclose);
+  gzwrite(file.get(), buf.data(), buf.size());
 }
 
 int main(int argc, char* argv[])
