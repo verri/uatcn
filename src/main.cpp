@@ -1,14 +1,23 @@
-#include "hexgrid.hpp"
 #include "anxious.hpp"
+#include "hexgrid.hpp"
 
-#include <fmt/core.h>
-#include <cstdio>
-#include <cool/indices.hpp>
+#include <CLI/CLI.hpp>
 #include <cool/ccreate.hpp>
+#include <cool/indices.hpp>
+#include <cstdio>
+#include <fmt/core.h>
+#include <fmt/format.h>
 #include <random>
 #include <uat/simulation.hpp>
-#include <CLI/CLI.hpp>
 #include <variant>
+#include <zlib.h>
+
+void compress_to(fmt::memory_buffer buf, std::string filename)
+{
+  gzFile file = gzopen(filename.c_str(), "wb");
+  gzwrite(file, buf.data(), buf.size());
+  gzclose(file);
+}
 
 int main(int argc, char* argv[])
 {
@@ -27,7 +36,7 @@ int main(int argc, char* argv[])
 
     int seed = -1;
 
-    std::string pattern = "out,time={time}.csv";
+    std::string pattern;
   } opts;
 
   app.add_option("-p,--start-print-time", opts.start_time, "Start time to print results");
@@ -60,16 +69,15 @@ int main(int argc, char* argv[])
   };
 
   // TODO: consider ground for other times
-  const auto status_callback = [start_time = opts.start_time,
-                                time_window = opts.dimensions[3],
-                                pattern = opts.pattern](uint_t t, const agents_private_status_fn& agents,
-                                                                  const airspace& space, permit_private_status_fn status) {
+  const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3],
+                                pattern = opts.pattern](uint_t t, const agents_private_status_fn& agents, const airspace& space,
+                                                        permit_private_status_fn status) {
     fmt::print(stderr, "{},{}\n", t, agents.active_count());
-    if (t < start_time)
+    if (pattern.empty() || t < start_time)
       return;
 
     using namespace permit_private_status;
-    const auto filename = fmt::format(pattern, fmt::arg("time", t));
+    const auto curtime = t;
     const auto end = t + time_window;
     ++t;
 
@@ -82,9 +90,7 @@ int main(int argc, char* argv[])
       return true;
     });
 
-    const auto file = cool::ccreate(std::fopen(filename.c_str(), "w"), std::fclose);
     fmt::memory_buffer out;
-
     fmt::format_to(out, "t,xa,ya,za,xb,yb,zb\n");
     for (; t < end && !current.empty(); ++t) {
       for (const auto& location : current) {
@@ -100,7 +106,7 @@ int main(int argc, char* argv[])
       std::swap(current, next);
       next.clear();
     }
-    std::fwrite(out.data(), sizeof(char), out.size(), file.get());
+    compress_to(std::move(out), fmt::format(pattern, fmt::arg("time", curtime)));
   };
 
   simulation_opts_t sopts = {.time_window = opts.dimensions[3],
