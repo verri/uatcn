@@ -3,16 +3,19 @@
 
 #include <CLI/CLI.hpp>
 #include <cool/ccreate.hpp>
+#include <cool/channel.hpp>
 #include <cool/indices.hpp>
 #include <cstdio>
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <random>
+#include <thread>
+#include <tuple>
 #include <uat/simulation.hpp>
 #include <variant>
 #include <zlib.h>
 
-void compress_to(fmt::memory_buffer buf, std::string filename)
+static void compress_to(fmt::memory_buffer buf, std::string filename)
 {
   const auto file = cool::ccreate(gzopen(filename.c_str(), "wb"), gzclose);
   gzwrite(file.get(), buf.data(), buf.size());
@@ -22,7 +25,7 @@ int main(int argc, char* argv[])
 {
   using namespace uat;
 
-  CLI::App app{"Simulate a variation of 10.1109/ACCESS.2020.3030612."};
+  CLI::App app{"Simulate a variation of <https://doi.org/10.1109/ACCESS.2020.3030612>"};
 
   struct
   {
@@ -67,10 +70,18 @@ int main(int argc, char* argv[])
     return result;
   };
 
+  cool::channel<std::tuple<fmt::memory_buffer, std::string>> ch;
+
+  std::thread print_thr([&] {
+    std::tuple<fmt::memory_buffer, std::string> args;
+    while (ch >> args)
+      std::apply(compress_to, std::move(args));
+  });
+
   // TODO: consider ground for other times
-  const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3],
-                                pattern = opts.pattern](uint_t t, const agents_private_status_fn& agents, const airspace& space,
-                                                        permit_private_status_fn status) {
+  const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3], pattern = opts.pattern,
+                                &ch](uint_t t, const agents_private_status_fn& agents, const airspace& space,
+                                     permit_private_status_fn status) mutable {
     fmt::print(stderr, "{},{}\n", t, agents.active_count());
     if (pattern.empty() || t < start_time)
       return;
@@ -105,7 +116,7 @@ int main(int argc, char* argv[])
       std::swap(current, next);
       next.clear();
     }
-    compress_to(std::move(out), fmt::format(pattern, fmt::arg("time", curtime)));
+    ch << std::forward_as_tuple(std::move(out), fmt::format(pattern, fmt::arg("time", curtime)));
   };
 
   simulation_opts_t sopts = {.time_window = opts.dimensions[3],
@@ -114,4 +125,7 @@ int main(int argc, char* argv[])
 
   simulate(factory, HexGrid{{opts.dimensions[0], opts.dimensions[1], opts.dimensions[2]}},
            opts.seed < 0 ? std::random_device{}() : opts.seed, sopts);
+
+  ch.close();
+  print_thr.join();
 }
