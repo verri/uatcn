@@ -10,10 +10,10 @@
 #include <unordered_set>
 
 // Exactly like 10.1109/ACCESS.2020.3030612
-class Naive
+class Anxious
 {
 public:
-  Naive(const uat::airspace&, uat::uint_t, int);
+  Anxious(const uat::airspace&, uat::uint_t, int);
 
   auto act(uat::uint_t, uat::bid_fn, uat::permit_public_status_fn, int) -> bool;
 

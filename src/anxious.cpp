@@ -1,4 +1,4 @@
-#include "naive.hpp"
+#include "anxious.hpp"
 
 #include "astar.hpp"
 
@@ -18,7 +18,7 @@
 
 using namespace uat;
 
-Naive::Naive(const airspace& space, [[maybe_unused]] uint_t T, int seed) // TODO
+Anxious::Anxious(const airspace& space, [[maybe_unused]] uint_t T, int seed) // TODO
 {
   std::mt19937 rng(seed);
   std::uniform_real_distribution<value_t> f{1e-6, 1.0};
@@ -27,7 +27,7 @@ Naive::Naive(const airspace& space, [[maybe_unused]] uint_t T, int seed) // TODO
   assert(T > mission_.length());
 }
 
-auto Naive::act(uint_t t, uat::bid_fn bid, uat::permit_public_status_fn status, int seed) -> bool
+auto Anxious::act(uint_t t, uat::bid_fn bid, uat::permit_public_status_fn status, int seed) -> bool
 {
   std::mt19937 rng(seed);
   onsale_ = std::exchange(keep_, {});
@@ -66,11 +66,11 @@ auto Naive::act(uint_t t, uat::bid_fn bid, uat::permit_public_status_fn status, 
   return keep_.size() != path.size(); // true if there are missing permits
 }
 
-auto Naive::after_trading(uint_t, ask_fn ask, permit_public_status_fn, int) -> void
+auto Anxious::after_trading(uint_t, ask_fn ask, permit_public_status_fn, int) -> void
 {
   for (const auto& position : onsale_)
     ask(position.location(), position.time(), 0.0);
   onsale_.clear();
 }
 
-auto Naive::on_bought(const region& s, uint_t t, value_t) -> void { keep_.insert({s, t}); }
+auto Anxious::on_bought(const region& s, uint_t t, value_t) -> void { keep_.insert({s, t}); }

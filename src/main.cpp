@@ -1,6 +1,6 @@
 #include "fmt/core.h"
 #include "hexgrid.hpp"
-#include "naive.hpp"
+#include "anxious.hpp"
 
 #include <cool/indices.hpp>
 #include <random>
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
     std::vector<agent> result;
     result.reserve(opts.arrival_rate);
     for ([[maybe_unused]] const auto _ : cool::indices(opts.arrival_rate))
-      result.push_back(Naive(space, opts.dimensions[3], rng()));
+      result.push_back(Anxious(space, opts.dimensions[3], rng()));
 
     return result;
   };
