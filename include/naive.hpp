@@ -23,14 +23,6 @@ public:
 
 private:
   uat::mission_t mission_;
-
   uat::value_t fundamental_;
-  uat::value_t sigma_;
-
-  uat::uint_t congestion_param_ = 1;
-  uat::uint_t max_congestion_param_;
-
-  uat::uint_t last_time_ = std::numeric_limits<uat::uint_t>::max();
-
   std::unordered_set<uat::permit> keep_, onsale_;
 };

@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
 
     uint_t arrival_rate = 1u;
 
-    std::array<int, 4u> dimensions = {15, 15, 3, 50}; // up to ~30k nodes in the network!
+    std::array<int, 4u> dimensions = {15, 15, 3, 23}; // up to ~15k nodes in the network!
 
     int seed = -1;
 
@@ -59,40 +59,42 @@ int main(int argc, char* argv[])
   };
 
   // TODO: consider ground for other times
-  const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3]](
-                                 uint_t t, const agents_private_status_fn& status, const airspace&, permit_private_status_fn) {
+  const auto status_callback = [start_time = opts.start_time,
+                                time_window = opts.dimensions[3]](uint_t t, const agents_private_status_fn& agents,
+                                                                  const airspace& space, permit_private_status_fn status) {
     fmt::print(stderr, "t = {}\n", t);
-    fmt::print(stdout, "{}\n", status.active_count());
-    // if (t < start_time)
-    //   return;
-    // using namespace permit_private_status;
-    // const auto end = t + time_window;
-    // ++t;
+    fmt::print(stderr, "{}\n", agents.active_count());
+    if (t < start_time)
+      return;
 
-    // std::unordered_set<region> current, next;
-    // space.iterate([&](region location) -> bool {
-    //   if (location.downcast<HexRegion>().altitude() != 0u)
-    //     return true;
-    //   if (std::holds_alternative<on_sale>(status(location, t)))
-    //     current.insert(location);
-    //   return true;
-    // });
+    using namespace permit_private_status;
+    const auto end = t + time_window;
+    ++t;
 
-    // fmt::print("t,xa,ya,za,xb,yb,zb\n");
-    // for (; t < end && !current.empty(); ++t) {
-    //   for (const auto& location : current) {
-    //     for (const auto& adj : location.adjacent_regions()) {
-    //       if (!std::holds_alternative<on_sale>(status(adj, t + 1)))
-    //         continue;
-    //       if (adj.downcast<HexRegion>().altitude() > end - t - 1)
-    //         continue;
-    //       fmt::print("{},{},{}\n", t, location, adj);
-    //       next.insert(adj);
-    //     }
-    //   }
-    //   current = std::move(next);
-    //   next.clear();
-    // }
+    std::unordered_set<region> current, next;
+    space.iterate([&](region location) -> bool {
+      if (location.downcast<HexRegion>().altitude() != 0u)
+        return true;
+      if (std::holds_alternative<on_sale>(status(location, t)) && std::holds_alternative<on_sale>(status(location, t + 1)))
+        current.insert(location);
+      return true;
+    });
+
+    fmt::print("t,xa,ya,za,xb,yb,zb\n");
+    for (; t < end && !current.empty(); ++t) {
+      for (const auto& location : current) {
+        for (const auto& adj : location.adjacent_regions()) {
+          if (!std::holds_alternative<on_sale>(status(adj, t + 1)) || !std::holds_alternative<on_sale>(status(adj, t + 2)))
+            continue;
+          if (adj.downcast<HexRegion>().altitude() > end - t - 1)
+            continue;
+          fmt::print("{},{},{}\n", t, location, adj);
+          next.insert(adj);
+        }
+      }
+      std::swap(current, next);
+      next.clear();
+    }
   };
 
   simulation_opts_t sopts = {.time_window = opts.dimensions[3],
