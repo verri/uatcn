@@ -1,11 +1,12 @@
-#include "fmt/core.h"
 #include "hexgrid.hpp"
 #include "anxious.hpp"
 
+#include <fmt/core.h>
+#include <cstdio>
 #include <cool/indices.hpp>
+#include <cool/ccreate.hpp>
 #include <random>
 #include <uat/simulation.hpp>
-
 #include <CLI/CLI.hpp>
 #include <variant>
 
@@ -26,7 +27,7 @@ int main(int argc, char* argv[])
 
     int seed = -1;
 
-    std::string pattern; // TODO: we are starting with the "free" network, not the traded permits
+    std::string pattern = "out,time={time}.csv";
   } opts;
 
   app.add_option("-p,--start-print-time", opts.start_time, "Start time to print results");
@@ -60,14 +61,15 @@ int main(int argc, char* argv[])
 
   // TODO: consider ground for other times
   const auto status_callback = [start_time = opts.start_time,
-                                time_window = opts.dimensions[3]](uint_t t, const agents_private_status_fn& agents,
+                                time_window = opts.dimensions[3],
+                                pattern = opts.pattern](uint_t t, const agents_private_status_fn& agents,
                                                                   const airspace& space, permit_private_status_fn status) {
-    fmt::print(stderr, "t = {}\n", t);
-    fmt::print(stderr, "{}\n", agents.active_count());
+    fmt::print(stderr, "{},{}\n", t, agents.active_count());
     if (t < start_time)
       return;
 
     using namespace permit_private_status;
+    const auto filename = fmt::format(pattern, fmt::arg("time", t));
     const auto end = t + time_window;
     ++t;
 
@@ -80,7 +82,10 @@ int main(int argc, char* argv[])
       return true;
     });
 
-    fmt::print("t,xa,ya,za,xb,yb,zb\n");
+    const auto file = cool::ccreate(std::fopen(filename.c_str(), "w"), std::fclose);
+    fmt::memory_buffer out;
+
+    fmt::format_to(out, "t,xa,ya,za,xb,yb,zb\n");
     for (; t < end && !current.empty(); ++t) {
       for (const auto& location : current) {
         for (const auto& adj : location.adjacent_regions()) {
@@ -88,13 +93,14 @@ int main(int argc, char* argv[])
             continue;
           if (adj.downcast<HexRegion>().altitude() > end - t - 1)
             continue;
-          fmt::print("{},{},{}\n", t, location, adj);
+          fmt::format_to(out, "{},{},{}\n", t, location, adj);
           next.insert(adj);
         }
       }
       std::swap(current, next);
       next.clear();
     }
+    std::fwrite(out.data(), sizeof(char), out.size(), file.get());
   };
 
   simulation_opts_t sopts = {.time_window = opts.dimensions[3],
