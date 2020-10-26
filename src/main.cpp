@@ -42,7 +42,8 @@ int main(int argc, char* argv[])
 
     int seed = -1;
 
-    std::string pattern;
+    std::string network_filename;
+    std::string agent_filename;
   } opts;
 
   app.add_option("-p,--start-print-time", opts.start_time, "Start time to print results");
@@ -53,7 +54,8 @@ int main(int argc, char* argv[])
 
   app.add_option("-s,--seed", opts.seed, "Random seed (random_device if < 0)");
 
-  app.add_option("-n,--network-data", opts.pattern, "Pattern of the network filename");
+  app.add_option("-n,--network-data", opts.network_filename, "Pattern of the network filename");
+  app.add_option("-o,--agent-data", opts.agent_filename, "Pattern of the agent filename");
 
   try {
     app.parse(argc, argv);
@@ -76,12 +78,19 @@ int main(int argc, char* argv[])
 
   cool::thread_pool async;
 
-  const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3], pattern = opts.pattern,
-                                space_size = opts.dimensions[0] * opts.dimensions[1] * opts.dimensions[2],
-                                &async](uint_t t, const agents_private_status_fn& agents, const airspace& space,
-                                        permit_private_status_fn status) mutable {
-    fmt::print(stderr, "{},{}\n", t, agents.active_count());
-    if (pattern.empty() || t < start_time)
+  compress_args_t agent_data{fmt::memory_buffer{}, std::move(opts.agent_filename)};
+  if (!agent_data.filename.empty())
+    fmt::format_to(agent_data.buffer, "t,count\n");
+
+  const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3],
+                                network_filename = opts.network_filename,
+                                space_size = opts.dimensions[0] * opts.dimensions[1] * opts.dimensions[2], &async,
+                                &agent_data](uint_t t, const agents_private_status_fn& agents, const airspace& space,
+                                             permit_private_status_fn status) mutable {
+    if (!agent_data.filename.empty())
+      fmt::format_to(agent_data.buffer, "{},{}\n", t, agents.active_count());
+
+    if (network_filename.empty() || t < start_time)
       return;
 
     using namespace permit_private_status;
@@ -98,7 +107,7 @@ int main(int argc, char* argv[])
       return true;
     });
 
-    compress_args_t args{fmt::memory_buffer{}, fmt::format(pattern, fmt::arg("time", curtime))};
+    compress_args_t args{fmt::memory_buffer{}, fmt::format(network_filename, fmt::arg("time", curtime))};
 
     fmt::format_to(args.buffer, "t,xa,ya,za,xb,yb,zb\n");
     for (; t < end && !current.empty(); ++t) {
@@ -128,6 +137,9 @@ int main(int argc, char* argv[])
 
   simulate(factory, HexGrid{{opts.dimensions[0], opts.dimensions[1], opts.dimensions[2]}},
            opts.seed < 0 ? std::random_device{}() : opts.seed, sopts);
+
+  if (!agent_data.filename.empty())
+    compress_to(agent_data);
 
   async.close();
   async.join();
