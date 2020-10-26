@@ -3,8 +3,8 @@
 
 #include <CLI/CLI.hpp>
 #include <cool/ccreate.hpp>
-#include <cool/thread_pool.hpp>
 #include <cool/indices.hpp>
+#include <cool/thread_pool.hpp>
 #include <cstdio>
 #include <fmt/core.h>
 #include <fmt/format.h>
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
   const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3], pattern = opts.pattern,
                                 space_size = opts.dimensions[0] * opts.dimensions[1] * opts.dimensions[2],
                                 &async](uint_t t, const agents_private_status_fn& agents, const airspace& space,
-                                     permit_private_status_fn status) mutable {
+                                        permit_private_status_fn status) mutable {
     fmt::print(stderr, "{},{}\n", t, agents.active_count());
     if (pattern.empty() || t < start_time)
       return;

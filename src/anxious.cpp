@@ -1,11 +1,10 @@
 #include "anxious.hpp"
 #include "astar.hpp"
 
+#include <cassert>
 #include <cmath>
 #include <cool/compose.hpp>
 #include <cool/indices.hpp>
-#include <jules/base/numeric.hpp>
-#include <cassert>
 #include <cstdio>
 #include <iterator>
 #include <limits>
