@@ -1,12 +1,10 @@
 #include "anxious.hpp"
-
 #include "astar.hpp"
 
 #include <cmath>
 #include <cool/compose.hpp>
 #include <cool/indices.hpp>
 #include <jules/base/numeric.hpp>
-
 #include <cassert>
 #include <cstdio>
 #include <iterator>
@@ -21,7 +19,7 @@ using namespace uat;
 Anxious::Anxious(const airspace& space, [[maybe_unused]] uint_t T, int seed)
 {
   std::mt19937 rng(seed);
-  std::uniform_real_distribution<value_t> f{0.5, 1.0};
+  std::uniform_real_distribution<value_t> f{1.0, 2.0};
   fundamental_ = f(rng);
   mission_ = space.random_mission(rng());
   assert(T > mission_.length());
@@ -33,29 +31,32 @@ auto Anxious::bid_phase(uint_t t, uat::bid_fn bid, uat::permit_public_status_fn 
   onsale_ = std::exchange(keep_, {});
 
   const auto path = astar(mission_.from, mission_.to, t + 1, fundamental_, status, rng());
+
   if (path.size() == 0) {
     path_size_ = std::numeric_limits<std::size_t>::max();
     return;
   }
 
-  for (const auto& [slot, t] : path) {
+  path_size_ = path.size();
+  for (auto& permit : path) {
     using namespace permit_public_status;
+    const auto stat = status(permit.location(), permit.time());
     std::visit(cool::compose{
                  [](unavailable) { assert(false); },
-                 [&, slot = slot, t = t](owned) {
-                   onsale_.erase({slot, t});
-                   keep_.emplace(std::move(slot), t);
+                 [&](owned) {
+                   onsale_.erase(permit);
+                   keep_.insert(std::move(permit));
                  },
-                 [&, slot = slot, t = t](available) { bid(std::move(slot), t, fundamental_); },
+                 [&](available) { bid(permit.location(), permit.time(), fundamental_); },
                },
-               status(slot, t));
+               stat);
   }
 }
 
 auto Anxious::ask_phase(uint_t, ask_fn ask, permit_public_status_fn, int) -> void
 {
-  for (const auto& position : onsale_)
-    ask(position.location(), position.time(), 0.0);
+  for (const auto& permit : onsale_)
+    ask(permit.location(), permit.time(), 0.0);
   onsale_.clear();
 }
 
