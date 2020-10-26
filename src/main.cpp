@@ -85,6 +85,7 @@ int main(int argc, char* argv[])
 
   // TODO: consider ground for other times
   const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3], pattern = opts.pattern,
+                                space_size = opts.dimensions[0] * opts.dimensions[1] * opts.dimensions[2],
                                 &ch](uint_t t, const agents_private_status_fn& agents, const airspace& space,
                                      permit_private_status_fn status) mutable {
     fmt::print(stderr, "{},{}\n", t, agents.active_count());
@@ -119,6 +120,10 @@ int main(int argc, char* argv[])
           next.insert(adj);
         }
       }
+
+      if (next.size() == space_size)
+        break;
+
       std::swap(current, next);
       next.clear();
     }
