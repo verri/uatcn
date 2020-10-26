@@ -3,13 +3,12 @@
 
 #include <CLI/CLI.hpp>
 #include <cool/ccreate.hpp>
-#include <cool/channel.hpp>
+#include <cool/thread_pool.hpp>
 #include <cool/indices.hpp>
 #include <cstdio>
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <random>
-#include <thread>
 #include <uat/simulation.hpp>
 #include <variant>
 #include <zlib.h>
@@ -75,18 +74,11 @@ int main(int argc, char* argv[])
     return result;
   };
 
-  cool::channel<compress_args_t> ch;
+  cool::thread_pool async;
 
-  std::thread print_thr([&] {
-    compress_args_t args;
-    while (ch >> args)
-      compress_to(args);
-  });
-
-  // TODO: consider ground for other times
   const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3], pattern = opts.pattern,
                                 space_size = opts.dimensions[0] * opts.dimensions[1] * opts.dimensions[2],
-                                &ch](uint_t t, const agents_private_status_fn& agents, const airspace& space,
+                                &async](uint_t t, const agents_private_status_fn& agents, const airspace& space,
                                      permit_private_status_fn status) mutable {
     fmt::print(stderr, "{},{}\n", t, agents.active_count());
     if (pattern.empty() || t < start_time)
@@ -127,7 +119,7 @@ int main(int argc, char* argv[])
       std::swap(current, next);
       next.clear();
     }
-    ch << std::move(args);
+    async.enqueue(&compress_to, std::move(args));
   };
 
   simulation_opts_t sopts = {.time_window = opts.dimensions[3],
@@ -137,6 +129,6 @@ int main(int argc, char* argv[])
   simulate(factory, HexGrid{{opts.dimensions[0], opts.dimensions[1], opts.dimensions[2]}},
            opts.seed < 0 ? std::random_device{}() : opts.seed, sopts);
 
-  ch.close();
-  print_thr.join();
+  async.close();
+  async.join();
 }
