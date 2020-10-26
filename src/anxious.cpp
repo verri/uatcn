@@ -18,36 +18,24 @@
 
 using namespace uat;
 
-Anxious::Anxious(const airspace& space, [[maybe_unused]] uint_t T, int seed) // TODO
+Anxious::Anxious(const airspace& space, [[maybe_unused]] uint_t T, int seed)
 {
   std::mt19937 rng(seed);
-  std::uniform_real_distribution<value_t> f{1e-6, 1.0};
+  std::uniform_real_distribution<value_t> f{0.5, 1.0};
   fundamental_ = f(rng);
   mission_ = space.random_mission(rng());
   assert(T > mission_.length());
 }
 
-auto Anxious::act(uint_t t, uat::bid_fn bid, uat::permit_public_status_fn status, int seed) -> bool
+auto Anxious::bid_phase(uint_t t, uat::bid_fn bid, uat::permit_public_status_fn status, int seed) -> void
 {
   std::mt19937 rng(seed);
   onsale_ = std::exchange(keep_, {});
 
-  {
-    auto path = astar(mission_.from, mission_.to, t, std::numeric_limits<value_t>::infinity(), status, rng());
-    // mission completed
-    if (path.size() != 0) {
-      for (auto& position : path) {
-        onsale_.erase(position);
-        keep_.insert(std::move(position));
-      }
-      return false;
-    }
-  }
-
   const auto path = astar(mission_.from, mission_.to, t + 1, fundamental_, status, rng());
   if (path.size() == 0) {
-    fundamental_ *= 2;
-    return true;
+    path_size_ = std::numeric_limits<std::size_t>::max();
+    return;
   }
 
   for (const auto& [slot, t] : path) {
@@ -62,11 +50,9 @@ auto Anxious::act(uint_t t, uat::bid_fn bid, uat::permit_public_status_fn status
                },
                status(slot, t));
   }
-
-  return keep_.size() != path.size(); // true if there are missing permits
 }
 
-auto Anxious::after_trading(uint_t, ask_fn ask, permit_public_status_fn, int) -> void
+auto Anxious::ask_phase(uint_t, ask_fn ask, permit_public_status_fn, int) -> void
 {
   for (const auto& position : onsale_)
     ask(position.location(), position.time(), 0.0);
@@ -74,3 +60,11 @@ auto Anxious::after_trading(uint_t, ask_fn ask, permit_public_status_fn, int) ->
 }
 
 auto Anxious::on_bought(const region& s, uint_t t, value_t) -> void { keep_.insert({s, t}); }
+
+auto Anxious::stop(uint_t, int) -> bool
+{
+  if (keep_.size() == path_size_)
+    return true;
+  fundamental_ *= 2.0;
+  return false;
+}
