@@ -22,7 +22,7 @@ for lambda in {30..1}; do
     else
       nfilename="data/network,d=35,35,5,150,s=$seed,l=$lambda,t={time}.csv.gz"
       parallel build-release/simulation -d 35 35 5 150 -s $seed -l $lambda \
-        -t $maxtime -p $((maxtime - 10)) \
+        -t $maxtime -p $((maxtime - 10 + 1)) \
         -n "$nfilename" \
         -o "$filename"
     fi
