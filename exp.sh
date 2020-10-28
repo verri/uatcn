@@ -13,8 +13,8 @@ cmake --build build-release
 
 trap 'kill $(jobs -p); exit 1' SIGINT SIGTERM SIGKILL
 
-maxtime=500
-for lambda in {30..1}; do
+maxtime=1000
+for lambda in {25..1}; do
   for seed in {1..20}; do
     for space in "35,35,5,150" "15,15,3,50"; do
       filename="data/agents,d=$space,s=$seed,l=$lambda.csv.gz"
