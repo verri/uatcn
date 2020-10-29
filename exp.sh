@@ -16,7 +16,7 @@ trap 'kill $(jobs -p); exit 1' SIGINT SIGTERM SIGKILL
 maxtime=1000
 for lambda in {25..1}; do
   for seed in {1..20}; do
-    for space in "35,35,5,150" "15,15,5,50" "15,15,3,50"; do
+    for space in "35,35,5,150" "25,25,3,100" "15,15,5,50" "15,15,3,50"; do
       filename="data/agents,d=$space,s=$seed,l=$lambda.csv.gz"
       if [ -f "$filename" ]; then
         echo "Skipping s=$seed λ=$lambda"
