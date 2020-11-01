@@ -12,7 +12,7 @@
 class Anxious
 {
 public:
-  Anxious(const uat::airspace&, uat::uint_t, int);
+  Anxious(const uat::airspace&, int);
 
   auto bid_phase(uat::uint_t, uat::bid_fn, uat::permit_public_status_fn, int) -> void;
 

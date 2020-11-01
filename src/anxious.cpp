@@ -15,13 +15,12 @@
 
 using namespace uat;
 
-Anxious::Anxious(const airspace& space, [[maybe_unused]] uint_t T, int seed)
+Anxious::Anxious(const airspace& space, int seed)
 {
   std::mt19937 rng(seed);
-  std::uniform_real_distribution<value_t> f{1.0, 2.0};
-  fundamental_ = f(rng);
+  std::uniform_real_distribution<value_t> f{0.0, 1.0};
+  fundamental_ = 1.0 + f(rng);
   mission_ = space.random_mission(rng());
-  assert(T > mission_.length());
 }
 
 auto Anxious::bid_phase(uint_t t, uat::bid_fn bid, uat::permit_public_status_fn status, int seed) -> void
@@ -63,8 +62,5 @@ auto Anxious::on_bought(const region& s, uint_t t, value_t) -> void { keep_.inse
 
 auto Anxious::stop(uint_t, int) -> bool
 {
-  if (keep_.size() == path_size_)
-    return true;
-  fundamental_ *= 2.0;
-  return false;
+  return keep_.size() == path_size_;
 }

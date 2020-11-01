@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 
     uint_t arrival_rate = 1u;
 
-    std::array<int, 4u> dimensions = {15, 15, 3, 23}; // up to ~15k nodes in the network!
+    std::array<int, 3u> dimensions = {15, 15, 3};
 
     int seed = -1;
 
@@ -63,7 +63,9 @@ int main(int argc, char* argv[])
     return app.exit(e);
   }
 
-  assert(opts.dimensions[3] > 1);
+  assert(opts.dimensions[0] >= 1);
+  assert(opts.dimensions[1] >= 1);
+  assert(opts.dimensions[2] >= 1);
 
   auto factory = [&](uint_t t, const airspace& space, int seed) -> std::vector<agent> {
     std::mt19937 rng(seed);
@@ -71,7 +73,7 @@ int main(int argc, char* argv[])
     std::vector<agent> result;
     result.reserve(opts.arrival_rate);
     for ([[maybe_unused]] const auto _ : cool::indices(opts.arrival_rate))
-      result.push_back(Anxious(space, opts.dimensions[3], rng()));
+      result.push_back(Anxious(space, rng()));
 
     return result;
   };
@@ -82,7 +84,7 @@ int main(int argc, char* argv[])
   if (!agent_data.filename.empty())
     fmt::format_to(agent_data.buffer, "t,count\n");
 
-  const auto status_callback = [start_time = opts.start_time, time_window = opts.dimensions[3],
+  const auto status_callback = [start_time = opts.start_time,
                                 network_filename = opts.network_filename,
                                 space_size = opts.dimensions[0] * opts.dimensions[1] * opts.dimensions[2], &async,
                                 &agent_data](uint_t t, const agents_private_status_fn& agents, const airspace& space,
@@ -95,7 +97,6 @@ int main(int argc, char* argv[])
 
     using namespace permit_private_status;
     const auto curtime = t;
-    const auto end = t + time_window;
     ++t;
 
     std::unordered_set<region> current, next;
@@ -110,12 +111,10 @@ int main(int argc, char* argv[])
     compress_args_t args{fmt::memory_buffer{}, fmt::format(network_filename, fmt::arg("time", curtime))};
 
     fmt::format_to(args.buffer, "t,xa,ya,za,xb,yb,zb\n");
-    for (; t < end && !current.empty(); ++t) {
+    for (; !current.empty(); ++t) {
       for (const auto& location : current) {
         for (const auto& adj : location.adjacent_regions()) {
           if (!std::holds_alternative<on_sale>(status(adj, t + 1)) || !std::holds_alternative<on_sale>(status(adj, t + 2)))
-            continue;
-          if (adj.downcast<HexRegion>().altitude() > end - t - 1)
             continue;
           fmt::format_to(args.buffer, "{},{},{}\n", t, location, adj);
           next.insert(adj);
@@ -131,8 +130,7 @@ int main(int argc, char* argv[])
     async.enqueue(&compress_to, std::move(args));
   };
 
-  simulation_opts_t sopts = {.time_window = opts.dimensions[3],
-                             .stop_criteria = stop_criteria::time_threshold_t{opts.max_time},
+  simulation_opts_t sopts = {.stop_criteria = stop_criteria::time_threshold_t{opts.max_time},
                              .status_callback = status_callback};
 
   simulate(factory, HexGrid{{opts.dimensions[0], opts.dimensions[1], opts.dimensions[2]}},
