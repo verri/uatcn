@@ -7,7 +7,7 @@ files <- foreach(filename = list.files("data", "*agents,d=*", full.names = TRUE)
             seed = filename %>% str_replace(".*s=(\\d+).*", "\\1") %>% as.numeric,
             lambda = filename %>% str_replace(".*l=(\\d+).*", "\\1") %>% as.numeric,
             dimensions = filename %>%
-              str_replace(".*d=(\\d+),(\\d+),(\\d+),(\\d+).*", "\\1,\\2,\\3,\\4") %>%
+              str_replace(".*d=(\\d+),(\\d+),(\\d+).*", "\\1,\\2,\\3") %>%
               str_split(",") %>%
               unlist() %>%
               as.numeric
@@ -19,7 +19,7 @@ data <- foreach(file = files, .combine = rbind) %do% {
     read_csv(filename, col_types = cols(.default = col_integer())) %>%
       mutate(seed = seed, lambda = lambda,
              X = dimensions[1], Y = dimensions[2], Z = dimensions[3],
-             time_window = dimensions[4])
+             time_window = Inf)
   })
 }
 

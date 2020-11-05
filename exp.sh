@@ -14,9 +14,9 @@ cmake --build build-release
 trap 'kill $(jobs -p); exit 1' SIGINT SIGTERM SIGKILL
 
 maxtime=1000
-for lambda in {10..1}; do
-  for seed in {1..20}; do
-    for space in "35,35,5,150" "25,25,3,100" "15,15,5,50" "15,15,3,50"; do
+for seed in {1..20}; do
+  for lambda in $(seq 40 -2 16) {15..1}; do
+    for space in "35,35,5" "25,25,3" "15,15,5" "15,15,3" "15,15,2" "15,15,1"; do
       filename="data/agents,d=$space,s=$seed,l=$lambda.csv.gz"
       if [ -f "$filename" ]; then
         echo "Skipping s=$seed λ=$lambda"
