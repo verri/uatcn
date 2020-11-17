@@ -84,8 +84,7 @@ int main(int argc, char* argv[])
   if (!agent_data.filename.empty())
     fmt::format_to(agent_data.buffer, "t,count\n");
 
-  const auto status_callback = [start_time = opts.start_time,
-                                network_filename = opts.network_filename,
+  const auto status_callback = [start_time = opts.start_time, network_filename = opts.network_filename,
                                 space_size = opts.dimensions[0] * opts.dimensions[1] * opts.dimensions[2], &async,
                                 &agent_data](uint_t t, const agents_private_status_fn& agents, const airspace& space,
                                              permit_private_status_fn status) mutable {
@@ -130,8 +129,7 @@ int main(int argc, char* argv[])
     async.enqueue(&compress_to, std::move(args));
   };
 
-  simulation_opts_t sopts = {.stop_criteria = stop_criteria::time_threshold_t{opts.max_time},
-                             .status_callback = status_callback};
+  simulation_opts_t sopts = {.stop_criteria = stop_criteria::time_threshold_t{opts.max_time}, .status_callback = status_callback};
 
   simulate(factory, HexGrid{{opts.dimensions[0], opts.dimensions[1], opts.dimensions[2]}},
            opts.seed < 0 ? std::random_device{}() : opts.seed, sopts);

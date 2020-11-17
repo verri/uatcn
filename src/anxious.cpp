@@ -60,7 +60,4 @@ auto Anxious::ask_phase(uint_t, ask_fn ask, permit_public_status_fn, int) -> voi
 
 auto Anxious::on_bought(const region& s, uint_t t, value_t) -> void { keep_.insert({s, t}); }
 
-auto Anxious::stop(uint_t, int) -> bool
-{
-  return keep_.size() == path_size_;
-}
+auto Anxious::stop(uint_t, int) -> bool { return keep_.size() == path_size_; }
